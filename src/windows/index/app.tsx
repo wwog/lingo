@@ -2,17 +2,16 @@ import { CloneRepoCard } from "@/components/clone-repo-card";
 import { NewProjectCard } from "@/components/new-project-card";
 import { OpenProjectCard } from "@/components/open-project-card";
 import { RecentProjectsCard } from "@/components/recent-projects-card";
-import { useEffect, type FC, type ReactNode } from "react";
+import { type FC } from "react";
 import { openSettingsWindow } from "../settings/mod";
 import { Badge } from "@/components/ui/badge";
 import { AppLogo } from "@/components/app-logo";
 import { Settings } from "lucide-react";
 
-interface StartAppProps {
-  children?: ReactNode;
-}
-export const StartApp: FC<StartAppProps> = (props) => {
+
+export const StartApp: FC = () => {
   function handleCreateProject(projectName: string, projectPath: string): void {
+    console.log('handleCreateProject', projectName, projectPath);
     throw new Error("Function not implemented.");
   }
 

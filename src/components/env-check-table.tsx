@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, Download, Terminal } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
 import { useConfirm } from "@/lib/use-confirm";
 
@@ -27,12 +28,27 @@ export function EnvCheckTable() {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [rechecking, setRechecking] = useState<boolean>(false);
+  const [installing, setInstalling] = useState<boolean>(false);
+  const [installOutput, setInstallOutput] = useState<string[]>([]);
+  const [showInstallOutput, setShowInstallOutput] = useState<boolean>(false);
   const [gitSimulation, setGitSimulation] = useState<boolean>(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     loadEnvRequirements();
   }, [gitSimulation]);
+
+  // 监听安装输出
+  useEffect(() => {
+    const unlisten = listen('install-output', (event) => {
+      const message = event.payload as string;
+      setInstallOutput(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, []);
 
   const loadEnvRequirements = async () => {
     try {
@@ -71,6 +87,25 @@ export function EnvCheckTable() {
       await loadEnvRequirements();
     } finally {
       setRechecking(false);
+    }
+  };
+
+  const handleInstallGit = async () => {
+    try {
+      setInstalling(true);
+      setInstallOutput([]);
+      setShowInstallOutput(true);
+      
+      const result = await invoke<string>("install_git_with_progress");
+      console.log("安装完成:", result);
+      
+      // 安装完成后重新检查环境
+      await loadEnvRequirements();
+    } catch (error) {
+      console.error("安装失败:", error);
+      setInstallOutput(prev => [...prev, `${new Date().toLocaleTimeString()}: 安装失败: ${error}`]);
+    } finally {
+      setInstalling(false);
     }
   };
 
@@ -120,12 +155,22 @@ export function EnvCheckTable() {
 
     setSaving(true);
     try {
-      // 更新安装状态
-      const next = envItems.map((item) => ({
-        ...item,
-        installed: item.required ? item.installed : item.selected,
-      }));
-      setEnvItems(next);
+      // 检查是否需要安装 Git
+      const needInstallGit = envItems.some(
+        (item) => item.name === "Git" && !item.installed && item.selected
+      );
+
+      if (needInstallGit) {
+        // 调用 Git 安装
+        await handleInstallGit();
+      } else {
+        // 更新安装状态
+        const next = envItems.map((item) => ({
+          ...item,
+          installed: item.required ? item.installed : item.selected,
+        }));
+        setEnvItems(next);
+      }
     } finally {
       setSaving(false);
     }
@@ -157,6 +202,7 @@ export function EnvCheckTable() {
             <TableHead className="w-[220px]">环境</TableHead>
             <TableHead>状态</TableHead>
             <TableHead>版本</TableHead>
+            <TableHead className="w-[120px]">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -190,24 +236,77 @@ export function EnvCheckTable() {
                 ) : null}
               </TableCell>
               <TableCell>{item.name ? item.version || "-" : null}</TableCell>
+              <TableCell>
+                {item.name === "Git" && !item.installed ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={installing || loading || saving}
+                    onClick={handleInstallGit}
+                    className="flex items-center gap-1"
+                  >
+                    <Download className={`h-3 w-3 ${installing ? 'animate-pulse' : ''}`} />
+                    {installing ? '安装中...' : '安装'}
+                  </Button>
+                ) : null}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
         <div className="flex-1 flex items-end justify-between gap-2 p-3 border-t bg-background/50 ">
-          <Button 
-            variant="outline" 
-            disabled={loading || rechecking || saving} 
-            onClick={handleRecheck}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${rechecking ? 'animate-spin' : ''}`} />
-            重新检测
-          </Button>
-          <Button disabled={!isDirty || saving} onClick={applyConfirm}>
-            确认更改
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              disabled={loading || rechecking || saving} 
+              onClick={handleRecheck}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${rechecking ? 'animate-spin' : ''}`} />
+              重新检测
+            </Button>
+            {installOutput.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowInstallOutput(!showInstallOutput)}
+                className="flex items-center gap-2"
+              >
+                <Terminal className="h-4 w-4" />
+                {showInstallOutput ? '隐藏' : '查看'}输出
+              </Button>
+            )}
+          </div>
+          <Button disabled={!isDirty || saving || installing} onClick={applyConfirm}>
+            {installing ? '安装中...' : '确认更改'}
           </Button>
         </div>
+
+        {/* 安装输出显示区域 */}
+        {showInstallOutput && installOutput.length > 0 && (
+          <div className="border-t bg-gray-50 dark:bg-gray-900">
+            <div className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium">安装输出</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setInstallOutput([])}
+                  className="text-xs"
+                >
+                  清除
+                </Button>
+              </div>
+              <div className="bg-black dark:bg-gray-800 text-green-400 p-3 rounded-md font-mono text-xs max-h-48 overflow-y-auto">
+                {installOutput.map((line, index) => (
+                  <div key={index} className="whitespace-pre-wrap">
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <ConfirmDialog />
     </>
