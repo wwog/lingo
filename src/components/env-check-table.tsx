@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState } from "react";
 import { useConfirm } from "@/lib/use-confirm";
@@ -26,6 +26,7 @@ export function EnvCheckTable() {
   const [envItems, setEnvItems] = useState<EnvItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  const [rechecking, setRechecking] = useState<boolean>(false);
   const [gitSimulation, setGitSimulation] = useState<boolean>(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -61,6 +62,15 @@ export function EnvCheckTable() {
       setEnvItems([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecheck = async () => {
+    try {
+      setRechecking(true);
+      await loadEnvRequirements();
+    } finally {
+      setRechecking(false);
     }
   };
 
@@ -184,7 +194,16 @@ export function EnvCheckTable() {
           ))}
         </TableBody>
       </Table>
-        <div className="flex-1 flex items-end justify-end gap-2 p-3 border-t bg-background/50 ">
+        <div className="flex-1 flex items-end justify-between gap-2 p-3 border-t bg-background/50 ">
+          <Button 
+            variant="outline" 
+            disabled={loading || rechecking || saving} 
+            onClick={handleRecheck}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${rechecking ? 'animate-spin' : ''}`} />
+            重新检测
+          </Button>
           <Button disabled={!isDirty || saving} onClick={applyConfirm}>
             确认更改
           </Button>
