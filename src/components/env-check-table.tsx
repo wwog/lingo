@@ -34,7 +34,7 @@ export function EnvCheckTable() {
   const loadEnvRequirements = async () => {
     try {
       setLoading(true);
-      
+
       // 如果开启了 Git 模拟，使用模拟状态
       if (gitSimulation) {
         const mockGit: EnvItem = {
@@ -42,15 +42,15 @@ export function EnvCheckTable() {
           installed: false,
           required: true,
           version: "2.45.0",
-          selected: true
+          selected: true,
         };
         setEnvItems([mockGit]);
       } else {
         // 否则从后端获取真实环境数据
         const requirements = await invoke<EnvItem[]>("get_env_requirements");
-        const withSelection = requirements.map(item => ({
+        const withSelection = requirements.map((item) => ({
           ...item,
-          selected: item.required || item.installed
+          selected: item.required || item.installed,
         }));
         setEnvItems(withSelection);
       }
@@ -62,26 +62,24 @@ export function EnvCheckTable() {
     }
   };
 
-
   const isDirty = useMemo(() => {
-    return envItems.some(item => 
-      !item.required && item.selected !== item.installed
-    );
+    return envItems.some((item) => item.selected !== item.installed);
   }, [envItems]);
 
   const toggleSelected = (name: string) => {
-    setEnvItems(prev => prev.map(item => {
-      if (item.name !== name) return item;
-      if (item.required) return item;
-      return { ...item, selected: !item.selected };
-    }));
+    setEnvItems((prev) =>
+      prev.map((item) => {
+        if (item.name !== name) return item;
+        if (item.required) return item;
+        return { ...item, selected: !item.selected };
+      })
+    );
   };
 
   const applyConfirm = async () => {
     // 计算更改清单
     const changeMarks: string[] = [];
-    envItems.forEach(item => {
-      if (!item.name || item.required) return;
+    envItems.forEach((item) => {
       if (item.selected !== item.installed) {
         changeMarks.push(`${item.selected ? "+" : "-"} ${item.name}`);
       }
@@ -102,9 +100,9 @@ export function EnvCheckTable() {
     setSaving(true);
     try {
       // 更新安装状态
-      const next = envItems.map(item => ({
+      const next = envItems.map((item) => ({
         ...item,
-        installed: item.required ? item.installed : item.selected
+        installed: item.required ? item.installed : item.selected,
       }));
       setEnvItems(next);
     } finally {
@@ -115,7 +113,6 @@ export function EnvCheckTable() {
   if (loading) {
     return <div className="text-center py-4">正在检查环境...</div>;
   }
-
 
   return (
     <div className="rounded-md h-full flex flex-col">
@@ -130,7 +127,7 @@ export function EnvCheckTable() {
           Git 模拟模式 (用于测试)
         </Label>
       </div>
-      
+
       <Table className="border-0">
         <TableHeader>
           <TableRow>
@@ -170,13 +167,15 @@ export function EnvCheckTable() {
                   )
                 ) : null}
               </TableCell>
-              <TableCell>{item.name ? (item.version || "-") : null}</TableCell>
+              <TableCell>{item.name ? item.version || "-" : null}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       <div className="flex-1 flex items-end justify-end gap-2 p-3 border-t bg-background/50 ">
-        <Button disabled={!isDirty || saving} onClick={applyConfirm}>确认更改</Button>
+        <Button disabled={!isDirty || saving} onClick={applyConfirm}>
+          确认更改
+        </Button>
       </div>
     </div>
   );
