@@ -9,10 +9,16 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, RefreshCw, Download, Terminal } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Download,
+  Terminal,
+} from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useConfirm } from "@/lib/use-confirm";
 
 interface EnvItem {
@@ -33,6 +39,7 @@ export function EnvCheckTable() {
   const [showInstallOutput, setShowInstallOutput] = useState<boolean>(false);
   const [gitSimulation, setGitSimulation] = useState<boolean>(false);
   const { confirm, ConfirmDialog } = useConfirm();
+  const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadEnvRequirements();
@@ -40,15 +47,25 @@ export function EnvCheckTable() {
 
   // 监听安装输出
   useEffect(() => {
-    const unlisten = listen('install-output', (event) => {
+    const unlisten = listen("install-output", (event) => {
       const message = event.payload as string;
-      setInstallOutput(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+      setInstallOutput((prev) => [
+        ...prev,
+        `${new Date().toLocaleTimeString()}: ${message}`,
+      ]);
     });
 
     return () => {
-      unlisten.then(fn => fn());
+      unlisten.then((fn) => fn());
     };
   }, []);
+
+  // 自动滚动到底部
+  useEffect(() => {
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [installOutput]);
 
   const loadEnvRequirements = async () => {
     try {
@@ -95,15 +112,18 @@ export function EnvCheckTable() {
       setInstalling(true);
       setInstallOutput([]);
       setShowInstallOutput(true);
-      
+
       const result = await invoke<string>("install_git_with_progress");
       console.log("安装完成:", result);
-      
+
       // 安装完成后重新检查环境
       await loadEnvRequirements();
     } catch (error) {
       console.error("安装失败:", error);
-      setInstallOutput(prev => [...prev, `${new Date().toLocaleTimeString()}: 安装失败: ${error}`]);
+      setInstallOutput((prev) => [
+        ...prev,
+        `${new Date().toLocaleTimeString()}: 安装失败: ${error}`,
+      ]);
     } finally {
       setInstalling(false);
     }
@@ -195,74 +215,80 @@ export function EnvCheckTable() {
           </Label>
         </div>
 
-      <Table className="border-0">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[56px]"></TableHead>
-            <TableHead className="w-[220px]">环境</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead>版本</TableHead>
-            <TableHead className="w-[120px]">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {envItems.map((item, idx) => (
-            <TableRow key={idx}>
-              <TableCell>
-                {item.name ? (
-                  <input
-                    type="checkbox"
-                    checked={!!item.selected}
-                    disabled={item.required}
-                    onChange={() => toggleSelected(item.name)}
-                    className="h-4 w-4"
-                  />
-                ) : null}
-              </TableCell>
-              <TableCell className="font-medium">{item.name}</TableCell>
-              <TableCell>
-                {item.name ? (
-                  item.installed ? (
-                    <div className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                      已安装
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                      未安装
-                    </div>
-                  )
-                ) : null}
-              </TableCell>
-              <TableCell>{item.name ? item.version || "-" : null}</TableCell>
-              <TableCell>
-                {item.name === "Git" && !item.installed ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={installing || loading || saving}
-                    onClick={handleInstallGit}
-                    className="flex items-center gap-1"
-                  >
-                    <Download className={`h-3 w-3 ${installing ? 'animate-pulse' : ''}`} />
-                    {installing ? '安装中...' : '安装'}
-                  </Button>
-                ) : null}
-              </TableCell>
+        <Table className="border-0">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[56px]"></TableHead>
+              <TableHead className="w-[220px]">环境</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>版本</TableHead>
+              <TableHead className="w-[120px]">操作</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {envItems.map((item, idx) => (
+              <TableRow key={idx}>
+                <TableCell>
+                  {item.name ? (
+                    <input
+                      type="checkbox"
+                      checked={!!item.selected}
+                      disabled={item.required}
+                      onChange={() => toggleSelected(item.name)}
+                      className="h-4 w-4"
+                    />
+                  ) : null}
+                </TableCell>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell>
+                  {item.name ? (
+                    item.installed ? (
+                      <div className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        已安装
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <XCircle className="h-4 w-4 text-red-500 mr-2" />
+                        未安装
+                      </div>
+                    )
+                  ) : null}
+                </TableCell>
+                <TableCell>{item.name ? item.version || "-" : null}</TableCell>
+                <TableCell>
+                  {item.name === "Git" && !item.installed ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={installing || loading || saving}
+                      onClick={handleInstallGit}
+                      className="flex items-center gap-1"
+                    >
+                      <Download
+                        className={`h-3 w-3 ${
+                          installing ? "animate-pulse" : ""
+                        }`}
+                      />
+                      {installing ? "安装中..." : "安装"}
+                    </Button>
+                  ) : null}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         <div className="flex-1 flex items-end justify-between gap-2 p-3 border-t bg-background/50 ">
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              disabled={loading || rechecking || saving} 
+            <Button
+              variant="outline"
+              disabled={loading || rechecking || saving}
               onClick={handleRecheck}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`h-4 w-4 ${rechecking ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`}
+              />
               重新检测
             </Button>
             {installOutput.length > 0 && (
@@ -273,12 +299,15 @@ export function EnvCheckTable() {
                 className="flex items-center gap-2"
               >
                 <Terminal className="h-4 w-4" />
-                {showInstallOutput ? '隐藏' : '查看'}输出
+                {showInstallOutput ? "隐藏" : "查看"}输出
               </Button>
             )}
           </div>
-          <Button disabled={!isDirty || saving || installing} onClick={applyConfirm}>
-            {installing ? '安装中...' : '确认更改'}
+          <Button
+            disabled={!isDirty || saving || installing}
+            onClick={applyConfirm}
+          >
+            {installing ? "安装中..." : "确认更改"}
           </Button>
         </div>
 
@@ -297,9 +326,22 @@ export function EnvCheckTable() {
                   清除
                 </Button>
               </div>
-              <div className="bg-black dark:bg-gray-800 text-green-400 p-3 rounded-md font-mono text-xs max-h-48 overflow-y-auto">
+              <div
+                ref={outputRef}
+                style={{
+                  WebkitUserSelect: "text",
+                  userSelect: "text",
+                }}
+                className="bg-black dark:bg-gray-800 text-green-400 p-3 rounded-md font-mono text-xs max-h-48 overflow-y-auto"
+              >
                 {installOutput.map((line, index) => (
-                  <div key={index} className="whitespace-pre-wrap">
+                  <div
+                    key={index}
+                    className="whitespace-pre-wrap"
+                    style={{
+                      userSelect: "inherit",
+                    }}
+                  >
                     {line}
                   </div>
                 ))}
