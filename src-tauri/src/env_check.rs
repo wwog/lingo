@@ -11,9 +11,9 @@ pub struct EnvItem {
 
 #[tauri::command]
 pub fn check_git_installed() -> EnvItem {
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg("command -v git && git --version")
+    // 使用跨平台方式直接调用 git --version
+    let output = Command::new("git")
+        .arg("--version")
         .output();
     
     let (installed, version) = match &output {
@@ -21,11 +21,10 @@ pub fn check_git_installed() -> EnvItem {
             let success = output.status.success();
             let version = if success {
                 let version_str = String::from_utf8_lossy(&output.stdout);
-                // 提取版本号，格式通常是 "git version 2.x.x"
+                // 典型输出: "git version 2.x.x"
                 version_str
-                    .lines()
-                    .last()
-                    .and_then(|line| line.split_whitespace().nth(2))
+                    .split_whitespace()
+                    .nth(2)
                     .map(|v| v.to_string())
             } else {
                 None

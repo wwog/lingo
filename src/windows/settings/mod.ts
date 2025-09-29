@@ -4,11 +4,12 @@ export function openSettingsWindow() {
   const webview = new WebviewWindow("settings", {
     resizable: false,
     title: "",
-    width: 640,
-    height: 450,
+    width: 960,
+    height: 640,
     visible: false,
     backgroundColor: "#000000",
     url: "/settings.html",
+    parent: "main",
   });
 
   webview.once("tauri://created", function () {
