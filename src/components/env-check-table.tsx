@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle, XCircle } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useMemo, useState } from "react";
+import { useConfirm } from "@/lib/use-confirm";
 
 interface EnvItem {
   name: string;
@@ -26,6 +27,7 @@ export function EnvCheckTable() {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [gitSimulation, setGitSimulation] = useState<boolean>(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     loadEnvRequirements();
@@ -90,11 +92,20 @@ export function EnvCheckTable() {
       : "没有可应用的更改。";
 
     if (changeMarks.length === 0) {
-      alert(confirmText);
+      await confirm({
+        title: "提示",
+        description: confirmText,
+        confirmText: "确定",
+      });
       return;
     }
 
-    const ok = window.confirm(confirmText);
+    const ok = await confirm({
+      title: "确认更改",
+      description: confirmText,
+      confirmText: "确认",
+      cancelText: "取消",
+    });
     if (!ok) return;
 
     setSaving(true);
@@ -115,18 +126,19 @@ export function EnvCheckTable() {
   }
 
   return (
-    <div className="rounded-md h-full flex flex-col">
-      {/* Git 模拟开关 */}
-      <div className="flex items-center space-x-2 p-3 border-b bg-muted/50">
-        <Switch
-          id="git-simulation"
-          checked={gitSimulation}
-          onCheckedChange={setGitSimulation}
-        />
-        <Label htmlFor="git-simulation" className="text-sm">
-          Git 模拟模式 (用于测试)
-        </Label>
-      </div>
+    <>
+      <div className="rounded-md h-full flex flex-col">
+        {/* Git 模拟开关 */}
+        <div className="flex items-center space-x-2 p-3 border-b bg-muted/50">
+          <Switch
+            id="git-simulation"
+            checked={gitSimulation}
+            onCheckedChange={setGitSimulation}
+          />
+          <Label htmlFor="git-simulation" className="text-sm">
+            Git 模拟未安装 (用于测试)
+          </Label>
+        </div>
 
       <Table className="border-0">
         <TableHeader>
@@ -172,11 +184,13 @@ export function EnvCheckTable() {
           ))}
         </TableBody>
       </Table>
-      <div className="flex-1 flex items-end justify-end gap-2 p-3 border-t bg-background/50 ">
-        <Button disabled={!isDirty || saving} onClick={applyConfirm}>
-          确认更改
-        </Button>
+        <div className="flex-1 flex items-end justify-end gap-2 p-3 border-t bg-background/50 ">
+          <Button disabled={!isDirty || saving} onClick={applyConfirm}>
+            确认更改
+          </Button>
+        </div>
       </div>
-    </div>
+      <ConfirmDialog />
+    </>
   );
 }
