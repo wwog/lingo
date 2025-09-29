@@ -15,7 +15,9 @@
         "title": "",
         "resizable": false,
         "width": 850,
-        "height": 640
+        "height": 640,
+        "visible": false,
+        "backgroundColor": "#000000"
       }
     ],
     "security": {

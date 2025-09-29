@@ -6,6 +6,8 @@ export function openSettingsWindow() {
     title: "",
     width: 640,
     height: 450,
+    visible: false,
+    backgroundColor: "#000000",
     url: "/settings.html",
   });
 
