@@ -222,7 +222,6 @@ export function EnvCheckTable() {
               <TableHead className="w-[220px]">环境</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>版本</TableHead>
-              <TableHead className="w-[120px]">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -256,24 +255,6 @@ export function EnvCheckTable() {
                   ) : null}
                 </TableCell>
                 <TableCell>{item.name ? item.version || "-" : null}</TableCell>
-                <TableCell>
-                  {item.name === "Git" && !item.installed ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={installing || loading || saving}
-                      onClick={handleInstallGit}
-                      className="flex items-center gap-1"
-                    >
-                      <Download
-                        className={`h-3 w-3 ${
-                          installing ? "animate-pulse" : ""
-                        }`}
-                      />
-                      {installing ? "安装中..." : "安装"}
-                    </Button>
-                  ) : null}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -242,7 +242,6 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| {
-            emit_install_output(app, &format!("普通权限启动失败: {}", e));
             format!("启动安装程序失败: {}", e)
         })?;
 
@@ -275,8 +274,11 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
         .await
         .map_err(|e| format!("等待安装进程完成失败: {}", e))?;
 
+    println!("清理临时文件");
     // 清理临时文件
     let _ = tokio::fs::remove_file(&installer_path).await;
+
+    println!("清理临时文件完成");
 
     if output.success() {
         // 安装完成后需要刷新环境变量，等待一下
