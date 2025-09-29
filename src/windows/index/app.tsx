@@ -2,7 +2,7 @@ import { CloneRepoCard } from "@/components/clone-repo-card";
 import { NewProjectCard } from "@/components/new-project-card";
 import { OpenProjectCard } from "@/components/open-project-card";
 import { RecentProjectsCard } from "@/components/recent-projects-card";
-import { useState, type FC, type ReactNode } from "react";
+import { useEffect, type FC, type ReactNode } from "react";
 import { openSettingsWindow } from "../settings/mod";
 import { Badge } from "@/components/ui/badge";
 import { AppLogo } from "@/components/app-logo";
