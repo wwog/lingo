@@ -1,0 +1,31 @@
+{
+    "settings": {
+        "title": "Settings",
+        "sidebar": {
+            "env": "Environment",
+            "personalization": "Personalization"
+        },
+        "env": {
+            "title": "Environment Check and Installation",
+            "description": "Check and install development environment dependencies. Git is required and cannot be canceled.",
+            "git-simulation": "Git simulation (for testing)",
+            "git-installed": "Git installed",
+            "git-not-installed": "Git not installed",
+            "git-version": "Git version",
+            "git-not-installed-description": "Git is not installed. Please install it and try again.",
+            "git-installed-description": "Git is installed. Please try again.",
+            "apply-changes": "Apply Changes",
+            "confirm-changes": "Confirm Changes",
+            "cancel-changes": "Cancel Changes",
+            "check-environment": "Check Environment",
+            "install-git": "Install Git",
+            "recheck-environment": "Recheck Environment",
+            "install-output": "Install Output"
+        },
+        "personalization": {
+            "title": "Personalization",
+            "theme": "Theme",
+            "theme-description": "Select your preferred interface color scheme."
+        }
+    }
+}

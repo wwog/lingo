@@ -1,0 +1,34 @@
+{
+    "settings": {
+        "title": "设置",
+        "sidebar": {
+            "env": "环境",
+            "personalization": "个性化"
+        },
+        "env": {
+            "title": "环境检测与安装",
+            "description": "检查开发环境依赖并进行安装。Git 为必需项，不能取消。",
+            "git-simulation": "Git 模拟未安装 (用于测试)",
+            "git-installed": "已安装",
+            "git-not-installed": "未安装",
+            "git-version": "版本",
+            "git-not-installed-description": "Git 未安装。请安装它并重试。",
+            "git-installed-description": "Git 已安装。请重试。",
+            "apply-changes": "应用更改",
+            "confirm-changes": "确认更改",
+            "cancel-changes": "取消更改",
+            "check-environment": "检查环境",
+            "install-git": "安装 Git",
+            "recheck-environment": "重新检查环境",
+            "install-output": "安装输出"
+        },
+        "personalization": {
+            "title": "个性化",
+            "theme": "主题",
+            "theme-description": "选择偏好的界面配色方案。",
+            "light": "亮色",
+            "dark": "暗色",
+            "system": "跟随系统"
+        }
+    }
+}
