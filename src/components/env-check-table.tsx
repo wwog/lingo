@@ -13,24 +13,23 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Download,
   Terminal,
 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useConfirm } from "@/lib/use-confirm";
+import {
+  fetchEnvRequirements,
+  installGitWithProgress,
+  listenInstallOutput,
+  type EnvItem,
+} from "@/lib/tauri-env-bridge";
 
-interface EnvItem {
-  name: string;
-  installed: boolean;
-  required: boolean;
-  version?: string;
+interface EnvTableItem extends EnvItem {
   selected: boolean;
 }
 
 export function EnvCheckTable() {
-  const [envItems, setEnvItems] = useState<EnvItem[]>([]);
+  const [envItems, setEnvItems] = useState<EnvTableItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [rechecking, setRechecking] = useState<boolean>(false);
@@ -47,16 +46,21 @@ export function EnvCheckTable() {
 
   // 监听安装输出
   useEffect(() => {
-    const unlisten = listen("install-output", (event) => {
-      const message = event.payload as string;
+    let unlisten: (() => void) | undefined;
+
+    listenInstallOutput((message) => {
       setInstallOutput((prev) => [
         ...prev,
         `${new Date().toLocaleTimeString()}: ${message}`,
       ]);
+    }).then((fn) => {
+      unlisten = fn;
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      if (unlisten) {
+        unlisten();
+      }
     };
   }, []);
 
@@ -73,7 +77,7 @@ export function EnvCheckTable() {
 
       // 如果开启了 Git 模拟，使用模拟状态
       if (gitSimulation) {
-        const mockGit: EnvItem = {
+        const mockGit: EnvTableItem = {
           name: "Git",
           installed: false,
           required: true,
@@ -83,7 +87,7 @@ export function EnvCheckTable() {
         setEnvItems([mockGit]);
       } else {
         // 否则从后端获取真实环境数据
-        const requirements = await invoke<EnvItem[]>("get_env_requirements");
+        const requirements = await fetchEnvRequirements();
         const withSelection = requirements.map((item) => ({
           ...item,
           selected: item.required || item.installed,
@@ -113,7 +117,7 @@ export function EnvCheckTable() {
       setInstallOutput([]);
       setShowInstallOutput(true);
 
-      const result = await invoke<string>("install_git_with_progress");
+      const result = await installGitWithProgress();
       console.log("安装完成:", result);
 
       // 安装完成后重新检查环境

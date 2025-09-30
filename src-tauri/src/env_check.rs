@@ -14,7 +14,7 @@ pub struct EnvItem {
 #[tauri::command]
 pub fn check_git_installed() -> EnvItem {
     let output = Command::new("git").arg("--version").output();
-    
+
     let (installed, version) = match &output {
         Ok(output) => {
             let success = output.status.success();
@@ -29,7 +29,7 @@ pub fn check_git_installed() -> EnvItem {
         }
         Err(_) => (false, None),
     };
-    
+
     EnvItem {
         name: "Git".to_string(),
         installed,
@@ -102,7 +102,6 @@ fn emit_install_output(app: &AppHandle, message: &str) {
 // Windows 带进度的安装函数
 #[cfg(target_os = "windows")]
 async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, String> {
-
     emit_install_output(app, "开始下载 Git 安装包...");
 
     // 检测系统架构
@@ -138,7 +137,8 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
     emit_install_output(app, &format!("正在从 {} 下载 Git 安装包...", download_url));
 
     // 下载安装包
-    let response = reqwest::get(download_url).await
+    let response = reqwest::get(download_url)
+        .await
         .map_err(|e| format!("下载失败: {}", e))?;
 
     if !response.status().is_success() {
@@ -148,7 +148,10 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
     // 获取文件大小用于进度显示
     let total_size = response.content_length().unwrap_or(0);
     if total_size > 0 {
-        emit_install_output(app, &format!("开始下载，文件大小: {} MB", total_size / 1024 / 1024));
+        emit_install_output(
+            app,
+            &format!("开始下载，文件大小: {} MB", total_size / 1024 / 1024),
+        );
     }
 
     // 分块下载并显示进度
@@ -167,39 +170,48 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
             let progress = (downloaded * 100) / total_size;
             // 每5%显示一次进度，避免过于频繁
             if progress >= last_progress + 5 || progress == 100 {
-                emit_install_output(app, &format!("下载进度: {}% ({}/{} MB)", 
-                    progress, 
-                    downloaded / 1024 / 1024, 
-                    total_size / 1024 / 1024
-                ));
+                emit_install_output(
+                    app,
+                    &format!(
+                        "下载进度: {}% ({}/{} MB)",
+                        progress,
+                        downloaded / 1024 / 1024,
+                        total_size / 1024 / 1024
+                    ),
+                );
                 last_progress = progress;
             }
         }
     }
 
-    emit_install_output(app, &format!("下载完成，文件大小: {} MB", content.len() / 1024 / 1024));
+    emit_install_output(
+        app,
+        &format!("下载完成，文件大小: {} MB", content.len() / 1024 / 1024),
+    );
 
     // 保存到临时文件 - 使用作用域确保文件句柄正确释放
     {
-        let mut file = tokio::fs::File::create(&installer_path).await
+        let mut file = tokio::fs::File::create(&installer_path)
+            .await
             .map_err(|e| format!("创建临时文件失败: {}", e))?;
 
         emit_install_output(app, "开始写入文件到磁盘...");
-        file.write_all(&content).await
+        file.write_all(&content)
+            .await
             .map_err(|e| format!("写入安装包失败: {}", e))?;
 
         emit_install_output(app, "强制刷新缓冲区到磁盘...");
-        file.flush().await
+        file.flush()
+            .await
             .map_err(|e| format!("刷新文件到磁盘失败: {}", e))?;
 
         emit_install_output(app, "文件写入完成，正在关闭文件句柄...");
-        
+
         // 文件句柄在这里自动 drop
     }
-    
+
     emit_install_output(app, "文件句柄已释放，文件操作完全完成");
     emit_install_output(app, "下载完成，开始安装...");
-
 
     // 检查文件是否存在且可访问
     if !installer_path.exists() {
@@ -209,9 +221,12 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
     // 检查文件权限和状态
     if let Ok(metadata) = std::fs::metadata(&installer_path) {
         emit_install_output(app, &format!("文件大小验证: {} bytes", metadata.len()));
-        emit_install_output(app, &format!("文件只读状态: {}", metadata.permissions().readonly()));
+        emit_install_output(
+            app,
+            &format!("文件只读状态: {}", metadata.permissions().readonly()),
+        );
         emit_install_output(app, &format!("预期大小: {} bytes", content.len()));
-        
+
         if metadata.len() != content.len() as u64 {
             return Err("文件大小不匹配，可能写入不完整".to_string());
         }
@@ -219,28 +234,29 @@ async fn install_git_windows_with_progress(app: &AppHandle) -> Result<String, St
         return Err("无法读取文件元数据".to_string());
     }
 
-    emit_install_output(app, &format!("准备执行安装程序: {}", installer_path.display()));
-    
+    emit_install_output(
+        app,
+        &format!("准备执行安装程序: {}", installer_path.display()),
+    );
+
     // 再次短暂等待，确保所有系统操作完成
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
     // 执行静默安装
     let mut child = tokio::process::Command::new(&installer_path)
         .args(&[
-            "/VERYSILENT",           // 静默安装
-            "/NORESTART",            // 不重启
-            "/NOCANCEL",             // 不允许取消
-            "/SP-",                  // 不显示启动画面
-            "/CLOSEAPPLICATIONS",    // 关闭相关应用
-            "/RESTARTAPPLICATIONS",  // 重启相关应用
+            "/VERYSILENT",                                                   // 静默安装
+            "/NORESTART",                                                    // 不重启
+            "/NOCANCEL",                                                     // 不允许取消
+            "/SP-",                                                          // 不显示启动画面
+            "/CLOSEAPPLICATIONS",                                            // 关闭相关应用
+            "/RESTARTAPPLICATIONS",                                          // 重启相关应用
             "/COMPONENTS=ext\\shellhere,ext\\guihere,gitlfs,assoc,assoc_sh", // 选择组件
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| {
-            format!("启动安装程序失败: {}", e)
-        })?;
+        .map_err(|e| format!("启动安装程序失败: {}", e))?;
 
     // 监听输出
     let stdout = child.stdout.take().unwrap();
@@ -321,7 +337,7 @@ async fn install_git_non_windows_with_progress(app: &AppHandle) -> Result<String
         let reader = AsyncBufReader::new(stderr);
         let mut lines = reader.lines();
         while let Ok(Some(line)) = lines.next_line().await {
-            emit_install_output(&app_clone, &format!("安装错误: {}", line));
+            emit_install_output(&app_clone, &format!("warn: {}", line));
         }
     });
 
