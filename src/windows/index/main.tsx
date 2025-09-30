@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RootLayout } from "@/global/root-layout";
+import { RootLayout } from "@/layout/root-layout";
 import { StartApp } from "./app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
