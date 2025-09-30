@@ -11,6 +11,8 @@
     "opener:default",
     "core:webview:allow-create-webview-window",
     "core:window:allow-show",
-    "dialog:default"
+    "dialog:default",
+    "fs:default",
+    "shell:default"
   ]
 }

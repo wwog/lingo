@@ -7,6 +7,7 @@ import { openSettingsWindow } from "../settings/mod";
 import { Badge } from "@/components/ui/badge";
 import { AppLogo } from "@/components/app-logo";
 import { Settings } from "lucide-react";
+import { open } from '@tauri-apps/plugin-dialog'
 
 
 export const StartApp: FC = () => {
@@ -15,8 +16,15 @@ export const StartApp: FC = () => {
     throw new Error("Function not implemented.");
   }
 
-  function handleOpenProject(): void {
-    throw new Error("Function not implemented.");
+  const handleOpenProject = async (): Promise<void> => {
+    const result = await open({
+      directory: true,
+      multiple: false,
+      title: "Open Project",
+    })
+    if (result) {
+      console.log('result', result);
+    }
   }
 
   function handleCloneRepository(): void {
