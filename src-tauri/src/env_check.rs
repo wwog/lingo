@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader as AsyncBufReader};
+use tokio::io::{AsyncBufReadExt, BufReader as AsyncBufReader};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EnvItem {
@@ -13,7 +13,6 @@ pub struct EnvItem {
 
 #[tauri::command]
 pub fn check_git_installed() -> EnvItem {
-    // 使用跨平台方式直接调用 git --version
     let output = Command::new("git").arg("--version").output();
     
     let (installed, version) = match &output {
@@ -44,12 +43,10 @@ pub fn get_env_requirements() -> Vec<EnvItem> {
     vec![check_git_installed()]
 }
 
-// 带进度回调的安装函数
 #[tauri::command]
 pub async fn install_git_with_progress(app: AppHandle) -> Result<String, String> {
     emit_install_output(&app, "Git 未安装，开始安装流程...");
 
-    // 3. 安装流程：
     #[cfg(target_os = "windows")]
     {
         // Windows 使用直接下载安装

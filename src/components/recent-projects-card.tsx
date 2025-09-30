@@ -19,13 +19,13 @@ export function RecentProjectsCard({ onOpenProject }: Props) {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Clock className="h-4 w-4" />
           最近项目
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent>
         {recentProjects.length > 0 ? (
           <>
             {recentProjects.map((project) => (
