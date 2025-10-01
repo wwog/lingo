@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { DirInput } from "./dir_input";
 
 type Props = {
   onCreate: (projectName: string, projectPath: string) => void;
@@ -73,11 +74,16 @@ export function NewProjectCard({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-path">项目路径</Label>
-                <Input
+                {/* <Input
                   id="project-path"
                   placeholder="选择项目保存位置"
                   value={projectPath}
                   onChange={(e) => setProjectPath(e.target.value)}
+                /> */}
+                <DirInput 
+                  placeholder="选择项目保存位置"
+                  value={projectPath}
+                  onChange={(e) => setProjectPath(e)}
                 />
               </div>
             </div>

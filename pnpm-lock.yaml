@@ -50,6 +50,9 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ~2.3.1
         version: 2.3.1
+      '@wwog/react':
+        specifier: ^1.3.10
+        version: 1.3.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1055,6 +1058,13 @@ packages:
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+
+  '@wwog/react@1.3.10':
+    resolution: {integrity: sha512-VH5I2wf1u/bi3RrzfLmMdbxMalF4uWI7InLw2aZvNnItCA7yR97SfND8XU2I+gSFZtkjdQg2SFYv6uE/TNIQEg==}
+    engines: {node: '>= 20.0.0', pnpm: '>=8.15.0'}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
@@ -2270,6 +2280,11 @@ snapshots:
       vite: 7.1.7(@types/node@24.5.2)(jiti@2.6.0)(lightningcss@1.30.1)
     transitivePeerDependencies:
       - supports-color
+
+  '@wwog/react@1.3.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   aria-hidden@1.2.6:
     dependencies:
