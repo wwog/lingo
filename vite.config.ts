@@ -11,6 +11,7 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss()],
     appType: "mpa",
     root: resolve(__dirname, "src"),
+    publicDir: resolve(__dirname, "public"),
     build: {
       rollupOptions: {
         input: {
