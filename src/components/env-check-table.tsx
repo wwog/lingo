@@ -13,7 +13,6 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Terminal,
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useConfirm } from "@/lib/use-confirm";
@@ -35,10 +34,10 @@ export function EnvCheckTable() {
   const [rechecking, setRechecking] = useState<boolean>(false);
   const [installing, setInstalling] = useState<boolean>(false);
   const [installOutput, setInstallOutput] = useState<string[]>([]);
-  const [showInstallOutput, setShowInstallOutput] = useState<boolean>(false);
   const [gitSimulation, setGitSimulation] = useState<boolean>(false);
   const { confirm, ConfirmDialog } = useConfirm();
   const outputRef = useRef<HTMLDivElement>(null);
+  const listenerInitialized = useRef<boolean>(false);
 
   useEffect(() => {
     loadEnvRequirements();
@@ -46,6 +45,11 @@ export function EnvCheckTable() {
 
   // 监听安装输出
   useEffect(() => {
+    // 防止在 StrictMode 下重复注册监听器
+    if (listenerInitialized.current) {
+      return;
+    }
+
     let unlisten: (() => void) | undefined;
 
     listenInstallOutput((message) => {
@@ -55,11 +59,13 @@ export function EnvCheckTable() {
       ]);
     }).then((fn) => {
       unlisten = fn;
+      listenerInitialized.current = true;
     });
 
     return () => {
       if (unlisten) {
         unlisten();
+        listenerInitialized.current = false;
       }
     };
   }, []);
@@ -114,8 +120,7 @@ export function EnvCheckTable() {
   const handleInstallGit = async () => {
     try {
       setInstalling(true);
-      setInstallOutput([]);
-      setShowInstallOutput(true);
+      setInstallOutput([]); // 清空之前的输出
 
       const result = await installGitWithProgress();
       console.log("安装完成:", result);
@@ -206,9 +211,9 @@ export function EnvCheckTable() {
 
   return (
     <>
-      <div className="rounded-md h-full flex flex-col">
+      <div className="flex flex-col">
         {/* Git 模拟开关 */}
-        <div className="flex items-center space-x-2 p-3 border-b bg-muted/50">
+        <div className="flex items-center space-x-2 px-6 py-3 border-b bg-muted/30">
           <Switch
             id="git-simulation"
             checked={gitSimulation}
@@ -219,75 +224,64 @@ export function EnvCheckTable() {
           </Label>
         </div>
 
-        <Table className="border-0">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[56px]"></TableHead>
-              <TableHead className="w-[220px]">环境</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>版本</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {envItems.map((item, idx) => (
-              <TableRow key={idx}>
-                <TableCell>
-                  {item.name ? (
-                    <input
-                      type="checkbox"
-                      checked={!!item.selected}
-                      disabled={item.required}
-                      onChange={() => toggleSelected(item.name)}
-                      className="h-4 w-4"
-                    />
-                  ) : null}
-                </TableCell>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>
-                  {item.name ? (
-                    item.installed ? (
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                        已安装
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                        未安装
-                      </div>
-                    )
-                  ) : null}
-                </TableCell>
-                <TableCell>{item.name ? item.version || "-" : null}</TableCell>
+        <div className="border-b">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[56px]"></TableHead>
+                <TableHead className="w-[220px]">环境</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>版本</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="flex-1 flex items-end justify-between gap-2 p-3 border-t bg-background/50 ">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              disabled={loading || rechecking || saving}
-              onClick={handleRecheck}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`}
-              />
-              重新检测
-            </Button>
-            {installOutput.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowInstallOutput(!showInstallOutput)}
-                className="flex items-center gap-2"
-              >
-                <Terminal className="h-4 w-4" />
-                {showInstallOutput ? "隐藏" : "查看"}输出
-              </Button>
-            )}
-          </div>
+            </TableHeader>
+            <TableBody>
+              {envItems.map((item, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>
+                    {item.name ? (
+                      <input
+                        type="checkbox"
+                        checked={!!item.selected}
+                        disabled={item.required}
+                        onChange={() => toggleSelected(item.name)}
+                        className="h-4 w-4"
+                      />
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>
+                    {item.name ? (
+                      item.installed ? (
+                        <div className="flex items-center">
+                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                          已安装
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <XCircle className="h-4 w-4 text-red-500 mr-2" />
+                          未安装
+                        </div>
+                      )
+                    ) : null}
+                  </TableCell>
+                  <TableCell>{item.name ? item.version || "-" : null}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="flex items-center justify-between gap-2 px-6 py-3 bg-muted/20">
+          <Button
+            variant="outline"
+            disabled={loading || rechecking || saving}
+            onClick={handleRecheck}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`}
+            />
+            重新检测
+          </Button>
           <Button
             disabled={!isDirty || saving || installing}
             onClick={applyConfirm}
@@ -296,10 +290,10 @@ export function EnvCheckTable() {
           </Button>
         </div>
 
-        {/* 安装输出显示区域 */}
-        {showInstallOutput && installOutput.length > 0 && (
-          <div className="border-t bg-gray-50 dark:bg-gray-900">
-            <div className="p-3">
+        {/* 安装输出显示区域 - 只在有输出时自动显示 */}
+        {installOutput.length > 0 && (
+          <div className="border-t bg-muted/10">
+            <div className="px-6 py-3">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-medium">安装输出</h4>
                 <Button
@@ -317,7 +311,7 @@ export function EnvCheckTable() {
                   WebkitUserSelect: "text",
                   userSelect: "text",
                 }}
-                className="bg-black dark:bg-gray-800 text-green-400 p-3 rounded-md font-mono text-xs max-h-48 overflow-y-auto"
+                className="bg-black dark:bg-gray-950 text-green-400 p-3 rounded-md font-mono text-xs max-h-48 overflow-y-auto"
               >
                 {installOutput.map((line, index) => (
                   <div

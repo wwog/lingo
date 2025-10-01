@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::process::{Command, Stdio};
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, BufReader as AsyncBufReader};
-use tokio::io::AsyncWriteExt as _;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader as AsyncBufReader};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EnvItem {
