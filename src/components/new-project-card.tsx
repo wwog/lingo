@@ -17,13 +17,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, ChevronRight, ChevronLeft, Check, GripVertical, Star, X } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import {
+  Plus,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  GripVertical,
+  Star,
+  X,
+} from "lucide-react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { DirInput } from "./dir_input";
 import { getDefaultFolder } from "@/lib/settings";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { exists } from "@tauri-apps/plugin-fs";
-import { COMMON_LANGUAGES, getLanguageFlagUrl, findLanguage } from "@/lib/languages";
+import {
+  COMMON_LANGUAGES,
+  getLanguageFlagUrl,
+  findLanguage,
+} from "@/lib/languages";
 import {
   DndContext,
   closestCenter,
@@ -42,21 +54,29 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 type Props = {
-  onCreate: (projectName: string, projectPath: string, defaultLanguage: string, supportLanguages: string[]) => void;
+  onCreate: (
+    projectName: string,
+    projectPath: string,
+    defaultLanguage: string,
+    supportLanguages: string[]
+  ) => void;
   disabled?: boolean;
 };
 
 // 可排序的语言项组件
-function SortableLanguageItem({ 
-  langCode, 
-  isDefault, 
-  onRemove 
-}: { 
-  langCode: string; 
-  isDefault: boolean; 
+function SortableLanguageItem({
+  langCode,
+  isDefault,
+  onRemove,
+}: {
+  langCode: string;
+  isDefault: boolean;
   onRemove: () => void;
 }) {
   const {
@@ -98,9 +118,7 @@ function SortableLanguageItem({
         className="w-6 h-4 object-cover rounded flex-shrink-0"
       />
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="text-sm truncate">
-          {lang.nativeName}
-        </span>
+        <span className="text-sm truncate">{lang.nativeName}</span>
         {isDefault && (
           <span className="inline-flex items-center gap-1 text-xs text-primary whitespace-nowrap flex-shrink-0">
             <Star className="h-3 w-3 fill-current" />
@@ -123,21 +141,20 @@ function SortableLanguageItem({
   );
 }
 
-export function NewProjectCard({
-  onCreate,
-  disabled = false,
-}: Props) {
+export function NewProjectCard({ onCreate, disabled = false }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [projectName, setProjectName] = useState("");
   const [projectPath, setProjectPath] = useState("");
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["zh-Hans", "en-US"]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([
+    "zh-Hans",
+    "en-US",
+  ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [projectPathPreview, setProjectPathPreview] = useState("");
-  const [isCheckingPath, setIsCheckingPath] = useState(false);
   const checkTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const prevProjectPathRef = useRef<string>("");
-  
+
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
@@ -154,7 +171,7 @@ export function NewProjectCard({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-  
+
   // 初始化默认路径
   useEffect(() => {
     const initDefaultPath = async () => {
@@ -177,46 +194,42 @@ export function NewProjectCard({
   }, [open]);
 
   // 更新项目路径预览和检查目录是否存在
-  useEffect(() => {
+  useLayoutEffect(() => {
     const updatePreviewAndCheck = async () => {
       if (projectPath && projectName) {
         try {
           const fullPath = await join(projectPath, projectName);
-          
+
           // 只在路径真正改变时更新预览和重新检查
           const pathChanged = fullPath !== prevProjectPathRef.current;
           if (pathChanged) {
             prevProjectPathRef.current = fullPath;
             setProjectPathPreview(fullPath);
-            
+
             // 清除之前的定时器
             if (checkTimeoutRef.current) {
               clearTimeout(checkTimeoutRef.current);
             }
-            
+
             // 延迟500ms后检查目录是否存在
             checkTimeoutRef.current = setTimeout(async () => {
-              setIsCheckingPath(true);
               try {
                 const pathExists = await exists(fullPath);
-                
-                // 批量更新状态，避免多次渲染
-                setIsCheckingPath(false);
+
                 setErrors((prev) => {
                   const { projectPath: _removed, ...rest } = prev;
                   if (pathExists) {
                     return {
                       ...rest,
-                      projectPath: "已存在该目录，无法创建"
+                      projectPath: "已存在该目录，无法创建",
                     };
                   }
                   return rest;
                 });
               } catch (error) {
                 console.error("检查路径失败:", error);
-                setIsCheckingPath(false);
               }
-            }, 500);
+            }, 400);
           }
         } catch (error) {
           console.error("无法生成路径:", error);
@@ -234,7 +247,7 @@ export function NewProjectCard({
     };
 
     updatePreviewAndCheck();
-    
+
     // 清理函数
     return () => {
       if (checkTimeoutRef.current) {
@@ -256,7 +269,6 @@ export function NewProjectCard({
       setProjectPath("");
       setSelectedLanguages(["zh-Hans", "en-US"]);
       setErrors({});
-      setIsCheckingPath(false);
       setProjectPathPreview("");
       prevProjectPathRef.current = "";
     }
@@ -264,39 +276,40 @@ export function NewProjectCard({
 
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!projectName.trim()) {
       newErrors.projectName = "项目名称不能为空";
     } else if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$/.test(projectName)) {
-      newErrors.projectName = "项目名称只能包含字母、数字、中文、下划线和连字符";
+      newErrors.projectName =
+        "项目名称只能包含字母、数字、中文、下划线和连字符";
     }
-    
+
     if (!projectPath.trim()) {
       newErrors.projectPath = "项目路径不能为空";
     }
-    
+
     // 检查是否有现有的路径错误（如目录已存在）
     const hasExistingPathError = errors.projectPath && !newErrors.projectPath;
-    
+
     // 合并错误
     const finalErrors = { ...newErrors };
     if (hasExistingPathError) {
       finalErrors.projectPath = errors.projectPath;
     }
-    
+
     setErrors(finalErrors);
-    
+
     // 返回是否有任何错误
     return Object.keys(finalErrors).length === 0;
   };
 
   const validateStep2 = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (selectedLanguages.length === 0) {
       newErrors.selectedLanguages = "至少选择一种语言";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -307,9 +320,9 @@ export function NewProjectCard({
       setErrors({});
     }
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent, currentStep: number) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (currentStep === 1) {
         handleNext();
@@ -327,7 +340,12 @@ export function NewProjectCard({
   const handleCreate = async () => {
     if (validateStep2()) {
       const defaultLanguage = selectedLanguages[0]; // 第一个为默认语言
-      await onCreate(projectName, projectPath, defaultLanguage, selectedLanguages);
+      await onCreate(
+        projectName,
+        projectPath,
+        defaultLanguage,
+        selectedLanguages
+      );
       handleOpenChange(false);
     }
   };
@@ -374,7 +392,9 @@ export function NewProjectCard({
             <DialogHeader>
               <DialogTitle>创建新项目</DialogTitle>
               <DialogDescription>
-                {step === 1 ? "第 1 步：设置项目名称和保存位置" : "第 2 步：配置项目语言"}
+                {step === 1
+                  ? "第 1 步：设置项目名称和保存位置"
+                  : "第 2 步：配置项目语言"}
               </DialogDescription>
             </DialogHeader>
 
@@ -423,7 +443,7 @@ export function NewProjectCard({
                   )}
                   {projectPathPreview && !errors.projectPath && (
                     <p className="text-xs text-muted-foreground">
-                      {isCheckingPath ? "检查目录..." : `项目将创建在: ${projectPathPreview}`}
+                      项目将创建在: ${projectPathPreview}`
                     </p>
                   )}
                 </div>
@@ -432,7 +452,10 @@ export function NewProjectCard({
 
             {/* 步骤 2: 语言配置 */}
             {step === 2 && (
-              <div className="flex gap-4 overflow-hidden flex-1" onKeyDown={(e) => handleKeyDown(e, 2)}>
+              <div
+                className="flex gap-4 overflow-hidden flex-1"
+                onKeyDown={(e) => handleKeyDown(e, 2)}
+              >
                 {/* 左侧：语言选择区域 */}
                 <div className="flex-1 flex flex-col space-y-2">
                   <Label>可用语言</Label>
@@ -442,7 +465,7 @@ export function NewProjectCard({
                   <div className="flex-1 overflow-y-auto p-2 border rounded-md space-y-1">
                     {COMMON_LANGUAGES.map((lang) => {
                       const isSelected = selectedLanguages.includes(lang.code);
-                      
+
                       return (
                         <button
                           key={lang.code}
@@ -460,10 +483,10 @@ export function NewProjectCard({
                             alt={lang.name}
                             className="w-6 h-4 object-cover rounded"
                           />
-                          <span className="text-sm flex-1 text-left">{lang.nativeName}</span>
-                          {isSelected && (
-                            <Check className="h-4 w-4" />
-                          )}
+                          <span className="text-sm flex-1 text-left">
+                            {lang.nativeName}
+                          </span>
+                          {isSelected && <Check className="h-4 w-4" />}
                         </button>
                       );
                     })}
@@ -475,7 +498,9 @@ export function NewProjectCard({
                   <div className="flex items-center justify-between">
                     <Label>已选语言 ({selectedLanguages.length})</Label>
                     {errors.selectedLanguages && (
-                      <p className="text-sm text-red-500">{errors.selectedLanguages}</p>
+                      <p className="text-sm text-red-500">
+                        {errors.selectedLanguages}
+                      </p>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -491,7 +516,10 @@ export function NewProjectCard({
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
-                        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                        modifiers={[
+                          restrictToVerticalAxis,
+                          restrictToParentElement,
+                        ]}
                       >
                         <SortableContext
                           items={selectedLanguages}
