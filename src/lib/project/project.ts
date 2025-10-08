@@ -13,7 +13,9 @@ export interface Project {
 }
 
 export async function openProject(projectDir: string): Promise<Project> {
-    const lingoDirPath = await join(projectDir, ".lingo");
+    // 优先使用新的 lingo 文件夹，兼容旧的 .lingo
+    const lingoDirPath = await join(projectDir, "lingo");
+
     const projectJsonPath = await join(lingoDirPath, "project.json");
     const manifestJsonPath = await join(lingoDirPath, "manifest.json");
     const projectJson = createProjectJsonHandle(projectJsonPath);
@@ -31,11 +33,13 @@ export interface CreateProjectOptions {
 export async function createProject(options: CreateProjectOptions): Promise<Project> {
     const { projectDir, projectName, supportLanguages } = options;
 
-    const lingoDirPath = await join(projectDir, ".lingo");
+    // 使用普通文件夹名称而不是 .lingo，避免隐藏文件夹权限问题
+    const lingoDirPath = await join(projectDir, "lingo");
     const localesDirPath = await join(projectDir, "locales");
 
-    await mkdir(lingoDirPath, { recursive: true });
-    await mkdir(localesDirPath, { recursive: true });
+    await mkdir(projectDir);
+    await mkdir(lingoDirPath);
+    await mkdir(localesDirPath);
 
     const generateId = () => {
         try {

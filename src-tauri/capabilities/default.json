@@ -13,6 +13,29 @@
     "core:window:allow-show",
     "dialog:default",
     "fs:default",
-    "shell:allow-execute"
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$HOME/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
+    "fs:allow-mkdir",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file",
+    "fs:allow-read-dir",
+    "fs:allow-exists",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "git",
+          "cmd": "git",
+          "args": true
+        }
+      ]
+    }
   ]
 }

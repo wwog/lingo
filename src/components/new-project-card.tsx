@@ -27,10 +27,11 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  MouseSensor,
+  TouchSensor,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -40,6 +41,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 
 type Props = {
   onCreate: (projectName: string, projectPath: string, defaultLanguage: string, supportLanguages: string[]) => void;
@@ -77,14 +79,15 @@ function SortableLanguageItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 p-2 rounded-md border bg-card transition-colors ${
-        isDragging ? "opacity-50 cursor-grabbing" : "cursor-grab"
+      className={`flex items-center gap-2 p-2 rounded-md border bg-card transition-all min-h-[40px] ${
+        isDragging ? "opacity-50 shadow-lg" : ""
       } ${isDefault ? "border-primary bg-primary/5" : ""}`}
     >
       <div
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1 -m-1 rounded hover:bg-accent hover:shadow-md transition-all"
+        title="拖动排序"
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -93,18 +96,23 @@ function SortableLanguageItem({
         alt={lang.name}
         className="w-6 h-4 object-cover rounded flex-shrink-0"
       />
-      <span className="text-sm flex-1">
-        {lang.nativeName}
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <span className="text-sm truncate">
+          {lang.nativeName}
+        </span>
         {isDefault && (
-          <span className="inline-flex items-center gap-1 ml-2 text-xs text-primary">
+          <span className="inline-flex items-center gap-1 text-xs text-primary whitespace-nowrap flex-shrink-0">
             <Star className="h-3 w-3 fill-current" />
             默认
           </span>
         )}
-      </span>
+      </div>
       <button
         type="button"
-        onClick={onRemove}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         className="flex-shrink-0 p-1 hover:bg-destructive/10 rounded transition-colors"
         title="移除"
       >
@@ -127,7 +135,17 @@ export function NewProjectCard({
   const [projectPathPreview, setProjectPathPreview] = useState("");
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8, // 移动8px后才激活拖拽，防止误触
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -270,7 +288,7 @@ export function NewProjectCard({
               {disabled ? "创建中..." : "创建项目"}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogContent className="w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>创建新项目</DialogTitle>
               <DialogDescription>
@@ -390,6 +408,7 @@ export function NewProjectCard({
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
+                        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
                       >
                         <SortableContext
                           items={selectedLanguages}

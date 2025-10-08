@@ -7,12 +7,13 @@ export async function isProjectDir(path: string): Promise<boolean> {
         const entries = await readDir(path);
         const entryByName = new Map(entries.map((entry) => [entry.name, entry]));
 
-        const lingoDirEntry = entryByName.get(".lingo");
+        // 检查新的 lingo 文件夹或旧的 .lingo 文件夹
+        const lingoDirEntry = entryByName.get("lingo") || entryByName.get(".lingo");
         if (!lingoDirEntry?.isDirectory) {
             return false;
         }
 
-        const lingoDirPath = await join(path, ".lingo");
+        const lingoDirPath = await join(path, lingoDirEntry.name);
         const lingoEntries = await readDir(lingoDirPath);
 
         const hasProjectJson = lingoEntries.some(

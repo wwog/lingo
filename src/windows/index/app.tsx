@@ -29,7 +29,7 @@ export const StartApp: FC = () => {
       // 创建项目完整路径
       const fullProjectPath = await join(projectPath, projectName);
       
-      toast.info("正在创建项目...", {
+      const loadingToast = toast.loading("正在创建项目...", {
         description: `项目名称: ${projectName}`,
       });
 
@@ -40,9 +40,10 @@ export const StartApp: FC = () => {
         supportLanguages,
       });
 
-      toast.success("项目创建成功！", {
+      toast.success("✨ 项目创建成功！", {
+        id: loadingToast,
         description: `已在 ${fullProjectPath} 创建项目`,
-        duration: 5000,
+        duration: 4000,
       });
 
       console.log('项目创建成功:', project);
@@ -51,9 +52,19 @@ export const StartApp: FC = () => {
       
     } catch (error) {
       console.error('创建项目失败:', error);
-      toast.error("创建项目失败", {
-        description: error instanceof Error ? error.message : "未知错误",
-        duration: 5000,
+      
+      let errorMessage = "未知错误";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // 特殊处理权限错误
+        if (errorMessage.includes("forbidden path")) {
+          errorMessage = "文件系统权限不足。请重启应用或选择其他目录。";
+        }
+      }
+      
+      toast.error("❌ 创建项目失败", {
+        description: errorMessage,
+        duration: 6000,
       });
     } finally {
       setIsCreating(false);
