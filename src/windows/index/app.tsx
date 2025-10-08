@@ -42,13 +42,10 @@ export const StartApp: FC = () => {
         supportLanguages,
       });
 
-      toast.success("✨ 项目创建成功！", {
-        id: loadingToast,
-        description: `已在 ${fullProjectPath} 创建项目`,
-        duration: 4000,
-      });
-
       console.log("项目创建成功:", project);
+
+      // 关闭 loading toast
+      toast.dismiss(loadingToast);
 
       // 自动打开新创建的项目
       const { openEditorWindow } = await import("../editor/mod");

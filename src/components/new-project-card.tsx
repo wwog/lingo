@@ -18,10 +18,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, ChevronRight, ChevronLeft, Check, GripVertical, Star, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DirInput } from "./dir_input";
 import { getDefaultFolder } from "@/lib/settings";
 import { documentDir, join } from "@tauri-apps/api/path";
+import { exists } from "@tauri-apps/plugin-fs";
 import { COMMON_LANGUAGES, getLanguageFlagUrl, findLanguage } from "@/lib/languages";
 import {
   DndContext,
@@ -133,6 +134,9 @@ export function NewProjectCard({
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["zh-Hans", "en-US"]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [projectPathPreview, setProjectPathPreview] = useState("");
+  const [isCheckingPath, setIsCheckingPath] = useState(false);
+  const checkTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const prevProjectPathRef = useRef<string>("");
   
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -172,34 +176,89 @@ export function NewProjectCard({
     }
   }, [open]);
 
-  // 更新项目路径预览
+  // 更新项目路径预览和检查目录是否存在
   useEffect(() => {
-    const updatePreview = async () => {
+    const updatePreviewAndCheck = async () => {
       if (projectPath && projectName) {
         try {
           const fullPath = await join(projectPath, projectName);
-          setProjectPathPreview(fullPath);
+          
+          // 只在路径真正改变时更新预览和重新检查
+          const pathChanged = fullPath !== prevProjectPathRef.current;
+          if (pathChanged) {
+            prevProjectPathRef.current = fullPath;
+            setProjectPathPreview(fullPath);
+            
+            // 清除之前的定时器
+            if (checkTimeoutRef.current) {
+              clearTimeout(checkTimeoutRef.current);
+            }
+            
+            // 延迟500ms后检查目录是否存在
+            checkTimeoutRef.current = setTimeout(async () => {
+              setIsCheckingPath(true);
+              try {
+                const pathExists = await exists(fullPath);
+                
+                // 批量更新状态，避免多次渲染
+                setIsCheckingPath(false);
+                setErrors((prev) => {
+                  const { projectPath: _removed, ...rest } = prev;
+                  if (pathExists) {
+                    return {
+                      ...rest,
+                      projectPath: "已存在该目录，无法创建"
+                    };
+                  }
+                  return rest;
+                });
+              } catch (error) {
+                console.error("检查路径失败:", error);
+                setIsCheckingPath(false);
+              }
+            }, 500);
+          }
         } catch (error) {
           console.error("无法生成路径:", error);
-          setProjectPathPreview("");
+          if (prevProjectPathRef.current !== "") {
+            prevProjectPathRef.current = "";
+            setProjectPathPreview("");
+          }
         }
       } else {
-        setProjectPathPreview("");
+        if (prevProjectPathRef.current !== "") {
+          prevProjectPathRef.current = "";
+          setProjectPathPreview("");
+        }
       }
     };
 
-    updatePreview();
+    updatePreviewAndCheck();
+    
+    // 清理函数
+    return () => {
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
+    };
   }, [projectPath, projectName]);
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
+      // 清除定时器
+      if (checkTimeoutRef.current) {
+        clearTimeout(checkTimeoutRef.current);
+      }
       // 重置状态
       setStep(1);
       setProjectName("");
       setProjectPath("");
       setSelectedLanguages(["zh-Hans", "en-US"]);
       setErrors({});
+      setIsCheckingPath(false);
+      setProjectPathPreview("");
+      prevProjectPathRef.current = "";
     }
   };
 
@@ -216,8 +275,19 @@ export function NewProjectCard({
       newErrors.projectPath = "项目路径不能为空";
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // 检查是否有现有的路径错误（如目录已存在）
+    const hasExistingPathError = errors.projectPath && !newErrors.projectPath;
+    
+    // 合并错误
+    const finalErrors = { ...newErrors };
+    if (hasExistingPathError) {
+      finalErrors.projectPath = errors.projectPath;
+    }
+    
+    setErrors(finalErrors);
+    
+    // 返回是否有任何错误
+    return Object.keys(finalErrors).length === 0;
   };
 
   const validateStep2 = (): boolean => {
@@ -234,6 +304,18 @@ export function NewProjectCard({
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
+      setErrors({});
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent, currentStep: number) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (currentStep === 1) {
+        handleNext();
+      } else if (currentStep === 2) {
+        handleCreate();
+      }
     }
   };
 
@@ -298,13 +380,14 @@ export function NewProjectCard({
 
             {/* 步骤 1: 基本信息 */}
             {step === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-4" onKeyDown={(e) => handleKeyDown(e, 1)}>
                 <div className="space-y-2">
                   <Label htmlFor="project-name">项目名称 *</Label>
                   <Input
                     id="project-name"
                     placeholder="输入项目名称"
                     value={projectName}
+                    autoFocus
                     onChange={(e) => {
                       setProjectName(e.target.value);
                       if (errors.projectName) {
@@ -340,7 +423,7 @@ export function NewProjectCard({
                   )}
                   {projectPathPreview && !errors.projectPath && (
                     <p className="text-xs text-muted-foreground">
-                      项目将创建在: {projectPathPreview}
+                      {isCheckingPath ? "检查目录..." : `项目将创建在: ${projectPathPreview}`}
                     </p>
                   )}
                 </div>
@@ -349,7 +432,7 @@ export function NewProjectCard({
 
             {/* 步骤 2: 语言配置 */}
             {step === 2 && (
-              <div className="flex gap-4 overflow-hidden flex-1">
+              <div className="flex gap-4 overflow-hidden flex-1" onKeyDown={(e) => handleKeyDown(e, 2)}>
                 {/* 左侧：语言选择区域 */}
                 <div className="flex-1 flex flex-col space-y-2">
                   <Label>可用语言</Label>
