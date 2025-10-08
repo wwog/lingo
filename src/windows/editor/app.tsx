@@ -1,36 +1,19 @@
-import { FC, useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-
-interface EditorInitPayload {
-  projectPath: string;
-}
+import { FC } from "react";
+import { useEditorParams } from "./hooks/use-editor-params";
 
 //#region component
 export const EditorApp: FC = () => {
-  const [projectPath, setProjectPath] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const params = useEditorParams();
 
-  useEffect(() => {
-    // 监听来自父窗口的项目路径
-    const unlisten = listen<EditorInitPayload>("editor-init", (event) => {
-      console.log("Received project path:", event.payload.projectPath);
-      setProjectPath(event.payload.projectPath);
-      setIsLoading(false);
-    });
-
-    // 清理监听器
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
-
-  if (isLoading) {
+  if (!params) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">加载中...</div>
+        <div className="text-lg text-red-500">未找到项目路径</div>
       </div>
     );
   }
+
+  const { projectPath } = params;
 
   return (
     <div className="p-4">

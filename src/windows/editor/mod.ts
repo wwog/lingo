@@ -13,6 +13,9 @@ export function openEditorWindow(props: EditorWindowProps) {
   const timestamp = Date.now();
   const windowLabel = `editor-${timestamp}`;
   
+  // 通过 URL 参数传递项目路径，避免事件时序问题
+  const encodedPath = encodeURIComponent(projectPath);
+  
   const webview = new WebviewWindow(windowLabel, {
     resizable: true,
     title: `LingoIDE - ${projectPath}`,
@@ -20,27 +23,14 @@ export function openEditorWindow(props: EditorWindowProps) {
     height,
     visible: false,
     backgroundColor: "#000000",
-    url: "/editor.html",
+    url: `/editor.html?projectPath=${encodedPath}`,
   });
 
-  webview.once("tauri://created", async function () {
-    // webview successfully created
+  webview.once("tauri://created", function () {
     console.log("Editor window successfully created:", windowLabel);
-    
-    // 等待窗口准备好后发送项目路径
-    // 使用 setTimeout 确保窗口已完全加载
-    setTimeout(async () => {
-      try {
-        await webview.emit("editor-init", { projectPath });
-        console.log("Project path sent to editor:", projectPath);
-      } catch (error) {
-        console.error("Failed to send project path to editor:", error);
-      }
-    }, 100);
   });
   
   webview.once("tauri://error", function (e) {
-    // an error happened creating the webview
     console.error("Error creating editor window:", e);
   });
 }

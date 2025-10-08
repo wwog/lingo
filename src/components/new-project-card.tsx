@@ -388,7 +388,10 @@ export function NewProjectCard({ onCreate, disabled = false }: Props) {
               {disabled ? "创建中..." : "创建项目"}
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-4xl max-h-[90vh] flex flex-col">
+          <DialogContent 
+            className="w-4xl max-h-[90vh] flex flex-col"
+            onKeyDown={(e) => handleKeyDown(e, step)}
+          >
             <DialogHeader>
               <DialogTitle>创建新项目</DialogTitle>
               <DialogDescription>
@@ -400,7 +403,7 @@ export function NewProjectCard({ onCreate, disabled = false }: Props) {
 
             {/* 步骤 1: 基本信息 */}
             {step === 1 && (
-              <div className="space-y-4" onKeyDown={(e) => handleKeyDown(e, 1)}>
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="project-name">项目名称 *</Label>
                   <Input
@@ -452,10 +455,7 @@ export function NewProjectCard({ onCreate, disabled = false }: Props) {
 
             {/* 步骤 2: 语言配置 */}
             {step === 2 && (
-              <div
-                className="flex gap-4 overflow-hidden flex-1"
-                onKeyDown={(e) => handleKeyDown(e, 2)}
-              >
+              <div className="flex gap-4 overflow-hidden flex-1">
                 {/* 左侧：语言选择区域 */}
                 <div className="flex-1 flex flex-col space-y-2">
                   <Label>可用语言</Label>

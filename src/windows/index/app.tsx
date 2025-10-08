@@ -23,17 +23,11 @@ export const StartApp: FC = () => {
     _defaultLanguage: string,
     supportLanguages: string[]
   ): Promise<void> => {
-    let loadingToast: string | number | undefined;
-
     try {
       setIsCreating(true);
 
       // 创建项目完整路径
       const fullProjectPath = await join(projectPath, projectName);
-
-      loadingToast = toast.loading("正在创建项目...", {
-        description: `项目名称: ${projectName}`,
-      });
 
       // 调用创建项目函数
       const project = await createProject({
@@ -43,9 +37,6 @@ export const StartApp: FC = () => {
       });
 
       console.log("项目创建成功:", project);
-
-      // 关闭 loading toast
-      toast.dismiss(loadingToast);
 
       // 自动打开新创建的项目
       const { openEditorWindow } = await import("../editor/mod");
@@ -61,9 +52,8 @@ export const StartApp: FC = () => {
         errorMessage = error;
       }
 
-      // 关闭 loading toast 并显示错误
+      // 显示错误
       toast.error("创建项目失败", {
-        id: loadingToast,
         description: errorMessage,
         duration: 6000,
       });
