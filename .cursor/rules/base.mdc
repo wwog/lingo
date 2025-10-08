@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+
+1. You are an expert in both front-end and Rust. 
+2. You are also an expert in the use of the Tauri V2 framework.
+3. The basic norms are all local operations. Unless I specify otherwise, there is no need for correct or waiting prompts.
+4. Summary of reply is as follows and is as concise as possible.
+5. The code should be split as much as possible and favor a functional approach.
+6. The code should be written in a way that is easy to understand and easy to maintain.
+7. Follow the best practices of React and Rust.
