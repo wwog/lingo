@@ -9,6 +9,7 @@ import { AppLogo } from "@/components/app-logo";
 import { Settings } from "lucide-react";
 import { open } from '@tauri-apps/plugin-dialog';
 import { createProject } from "@/lib/project/project";
+import { isProjectDir } from "@/lib/project/utils";
 import { join } from "@tauri-apps/api/path";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -48,7 +49,9 @@ export const StartApp: FC = () => {
 
       console.log('项目创建成功:', project);
       
-      // TODO: 跳转到项目编辑页面或打开项目
+      // 自动打开新创建的项目
+      const { openEditorWindow } = await import("../editor/mod");
+      openEditorWindow({ projectPath: fullProjectPath });
       
     } catch (error) {
       console.error('创建项目失败:', error);
@@ -71,14 +74,58 @@ export const StartApp: FC = () => {
     }
   };
 
-  const handleOpenProject = async (): Promise<void> => {
-    const result = await open({
-      directory: true,
-      multiple: false,
-      title: "Open Project",
-    })
-    if (result) {
-      console.log('result', result);
+  const handleOpenProject = async (projectPath?: string): Promise<void> => {
+    let selectedPath: string | undefined = undefined;
+    
+    // 检查传入的参数是否是有效的字符串路径（而不是事件对象）
+    if (typeof projectPath === 'string' && projectPath.length > 0) {
+      selectedPath = projectPath;
+    }
+    
+    // 如果没有提供项目路径，则打开文件夹选择对话框
+    if (!selectedPath) {
+      const result = await open({
+        directory: true,
+        multiple: false,
+        title: "Open Project",
+      });
+      
+      if (!result) {
+        return;
+      }
+      
+      selectedPath = result;
+    }
+    
+    try {
+      // 验证是否是有效的 Lingo 项目
+      const isValid = await isProjectDir(selectedPath);
+      
+      if (!isValid) {
+        toast.error("❌ 无效的项目", {
+          description: "所选文件夹不是有效的 Lingo 项目。请确保包含 lingo/project.json 和 lingo/manifest.json 文件。",
+          duration: 6000,
+        });
+        return;
+      }
+      
+      console.log('Opening project:', selectedPath);
+      
+      // 导入并打开编辑器窗口
+      const { openEditorWindow } = await import("../editor/mod");
+      openEditorWindow({ projectPath: selectedPath });
+    } catch (error) {
+      console.error('打开项目失败:', error);
+      
+      let errorMessage = "未知错误";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast.error("❌ 打开项目失败", {
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   }
 

@@ -5,7 +5,7 @@ import { formatLastOpened } from "@/lib/time";
 import { Clock, Folder } from "lucide-react";
 
 type Props = {
-  onOpenProject: () => void;
+  onOpenProject: (projectPath: string) => void;
 };
 
 export function RecentProjectsCard({ onOpenProject }: Props) {
@@ -32,7 +32,7 @@ export function RecentProjectsCard({ onOpenProject }: Props) {
               <div
                 key={`${project.path}+${project.name}`}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                onClick={() => onOpenProject()}
+                onClick={() => onOpenProject(project.path)}
               >
                 <div className="flex-shrink-0">
                   <Folder className="h-4 w-4 text-muted-foreground" />
